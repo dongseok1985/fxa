@@ -295,16 +295,15 @@ The following event types will be emitted
 by the FxA servers:
 
 * **sequence.begin**: emitted when the user begins interaction by requesting a page
-* **account.created**: emitted when a signup is successfully completed
+* **account.create**: emitted when a signup is successfully completed
 * **account.login**: emitted when a signin is successfully completed
-* **account.verified**: emitted when the account email is successfully verified
+* **account.verify**: emitted when the account email is successfully verified
+* **account.keyfetch**: emitted when encryption keys are successfully fetched
 * **account.reset**: emitted when an account reset is successfully completed
-* **account.deleted**: emitted when an account deletion is successfully completed
-* **account.signed**: emitted when a certificate is successfully signed
-* **device.created**: emitted when a device record is successfully created
-* **device.connected**: emitted when a device is successfully fetches encryption keys
-* **device.disconnected**: emitted when a device has its session token revoked
-* **device.deleted**: emitted when a device record is successfully deleted
+* **account.delete**: emitted when an account deletion is successfully completed
+* **account.sign**: emitted when a certificate is successfully signed
+* **device.create**: emitted when a device record is successfully created
+* **device.delete**: emitted when a device record is successfully deleted
 
 Some example event data
 might look like the following:
@@ -348,7 +347,7 @@ might look like the following:
     <td>1456434152520</td>
     <td>e17f606faf93812dfc45bdb308390119</td>
     <td>12657</td>
-    <td>account.created</td>
+    <td>account.create</td>
     <td>1161b57840f20ad4ea19ea0a87a99632</td>
     <td>NULL</td>
     <td>1</td>
@@ -365,7 +364,7 @@ might look like the following:
     <td>1456434152525</td>
     <td>e17f606faf93812dfc45bdb308390119</td>
     <td>20417</td>
-    <td>device.created</td>
+    <td>device.create</td>
     <td>1161b57840f20ad4ea19ea0a87a99632</td>
     <td>3ccdd1cb9c3bee8a2d1750c4754d00c6</td>
     <td>1</td>
@@ -382,7 +381,7 @@ might look like the following:
     <td>1456434159933</td>
     <td>e17f606faf93812dfc45bdb308390119</td>
     <td>20070</td>
-    <td>account.verified</td>
+    <td>account.verify</td>
     <td>1161b57840f20ad4ea19ea0a87a99632</td>
     <td>3ccdd1cb9c3bee8a2d1750c4754d00c6</td>
     <td>1</td>
@@ -399,7 +398,7 @@ might look like the following:
     <td>1456434160275</td>
     <td>e17f606faf93812dfc45bdb308390119</td>
     <td>20412</td>
-    <td>device.connected</td>
+    <td>account.keyfetch</td>
     <td>1161b57840f20ad4ea19ea0a87a99632</td>
     <td>3ccdd1cb9c3bee8a2d1750c4754d00c6</td>
     <td>1</td>
@@ -416,7 +415,7 @@ might look like the following:
     <td>1456434161650</td>
     <td>5470a525d256a47c6c4526b58470be10</td>
     <td>0</td>
-    <td>account.signed</td>
+    <td>account.sign</td>
     <td>1161b57840f20ad4ea19ea0a87a99632</td>
     <td>3ccdd1cb9c3bee8a2d1750c4754d00c6</td>
     <td>0</td>
@@ -436,7 +435,7 @@ and connects their first device
 as part of a single user-interaction sequence.
 Once the device is connected
 it can start syncing,
-generating 'account.signed'
+generating 'account.sign'
 events that are no longer
 connected to the same sequence id.
 
@@ -536,9 +535,10 @@ of device connection:
       ) AS begun,
       (SELECT COUNT(\*)
        FROM events
-       WHERE type = 'device.connected'
+       WHERE type = 'account.keyfetch'
          AND timestamp > [previous UTC midnight]
          AND timestamp <= [current UTC midnight]
+         AND deviceId IS NOT NULL
          AND service = "sync"
       ) AS completed;
 
@@ -553,7 +553,7 @@ We'll need to:
       so that it can be emitted on subsequent activity events.
 * [ ] Generate reliable device ids for devices that don't explicitly register
       themselves with our API.
-* [ ] Add new 'device.connected' and 'device.disconnected' activity events.
+* [ ] Add new device-related activity events.
 * [ ] Work with ops and datapipeline team to get activity events into redshift.
 * [ ] Develop queries and ensure they get run on a daily basis.
 * [ ] Propose and get approval for retention policy of event data and aggregates.
